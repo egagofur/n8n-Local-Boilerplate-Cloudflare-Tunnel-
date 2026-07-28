@@ -1,0 +1,24 @@
+# Secrets & local env
+.env
+.env.local
+.env.*.local
+
+# Backups & dumps
+backups/
+*.sql
+*.sql.gz
+*.dump
+*.tar
+*.tar.gz
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+*.log
+
+# Accidental local mounts (persistence is Docker named volumes by default)
+data/
