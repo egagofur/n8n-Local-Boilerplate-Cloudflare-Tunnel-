@@ -67,16 +67,17 @@ WEBHOOK_URL=https://n8n-hooks.yourdomain.com/
 
 ```bash
 ./start.sh --local              # start without tunnel
+./start.sh --sync               # keep current tunnel URL; re-apply it to n8n
 ./stop.sh                       # stop (keeps data)
 ./stop.sh --volumes             # stop + delete data (careful)
 ./backup.sh                     # dump DB + n8n volume → backups/
 
-docker compose logs -f n8n      # logs
+docker compose logs -f n8n
 docker compose logs -f cloudflared
-
-# After editing .env, reload n8n env vars:
-docker compose up -d --force-recreate --no-deps n8n
 ```
+
+After any tunnel URL change, prefer `./start.sh --sync` or `./start.sh --tunnel`  
+(not a bare `docker compose restart`). Scripts export `WEBHOOK_URL` so Compose cannot keep a stale shell value.
 
 ---
 
@@ -113,8 +114,9 @@ docker compose exec -T postgres pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB"
 | Problem | Fix |
 |---------|-----|
 | `Permission denied` | `chmod +x start.sh stop.sh backup.sh` or `bash start.sh` |
-| Webhook URL changed | Normal for Quick Tunnel → use `--named` for a stable URL |
-| Webhooks still show localhost | Run `./start.sh --tunnel` again (it recreates n8n) |
+| Tunnel URL ≠ n8n webhook URL | `./start.sh --sync` then hard-refresh the UI; re-register WA/Telegram with the new host |
+| Webhook URL changed again | Normal for Quick Tunnel → use `--named` for a stable host |
+| Webhooks still show old host | Path (`/webhook/wa-service`) is fine; only host comes from env. Run `--sync`, then update the external app |
 | No public exposure | `./start.sh --local` |
 | Windows scripts fail | Use Git Bash or WSL |
 

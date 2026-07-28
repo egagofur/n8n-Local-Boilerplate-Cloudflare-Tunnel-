@@ -45,6 +45,9 @@ services:
       N8N_HOST: ${N8N_HOST:-localhost}
       N8N_PORT: 5678
       N8N_PROTOCOL: ${N8N_PROTOCOL:-http}
+      # n8n 2.x: N8N_WEBHOOK_URL is the preferred base for test + production webhooks.
+      # WEBHOOK_URL kept for older docs/tooling; both are set from the same .env value.
+      N8N_WEBHOOK_URL: ${WEBHOOK_URL:-}
       WEBHOOK_URL: ${WEBHOOK_URL:-}
 
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
