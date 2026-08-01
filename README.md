@@ -47,6 +47,8 @@ Create a strong owner password on first open. Never commit `.env`. If you lose `
 
 **Quick Tunnel** — free HTTPS (`*.trycloudflare.com`). URL **changes** on every tunnel restart. The tunnel exposes **all of n8n** (UI + API + webhooks), not just webhooks.
 
+On `./start.sh` / `--tunnel`, the script **curls** the live host (`/healthz`) and **auto-syncs** n8n if it still points at an old/dead URL. A background watcher (~30s) keeps doing that while the stack runs (`./start.sh --no-watch` to disable).
+
 **Named tunnel** — stable hostname:
 
 1. Create a tunnel in [Cloudflare Zero Trust](https://one.dash.cloudflare.com/) and copy the token  
@@ -67,17 +69,17 @@ WEBHOOK_URL=https://n8n-hooks.yourdomain.com/
 
 ```bash
 ./start.sh --local              # start without tunnel
-./start.sh --sync               # keep current tunnel URL; re-apply it to n8n
-./stop.sh                       # stop (keeps data)
-./stop.sh --volumes             # stop + delete data (careful)
-./backup.sh                     # dump DB + n8n volume → backups/
+./start.sh --tunnel             # curl live URL + auto-sync n8n if mismatch
+./start.sh --sync               # same align step; never restarts cloudflared
+./start.sh --no-watch           # disable background auto-sync watcher
+./stop.sh                       # stop stack + watcher
+./backup.sh
 
 docker compose logs -f n8n
 docker compose logs -f cloudflared
 ```
 
-After any tunnel URL change, prefer `./start.sh --sync` or `./start.sh --tunnel`  
-(not a bare `docker compose restart`). Scripts export `WEBHOOK_URL` so Compose cannot keep a stale shell value.
+`--tunnel` and `--sync` share the same path: scrape tunnel → **curl** → if n8n host ≠ live host (or n8n host is NXDOMAIN/dead) → export `WEBHOOK_URL` + recreate n8n only.
 
 ---
 
@@ -114,7 +116,7 @@ docker compose exec -T postgres pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB"
 | Problem | Fix |
 |---------|-----|
 | `Permission denied` | `chmod +x start.sh stop.sh backup.sh` or `bash start.sh` |
-| Tunnel URL ≠ n8n webhook URL | `./start.sh --sync` then hard-refresh the UI; re-register WA/Telegram with the new host |
+| Tunnel URL ≠ n8n webhook URL | Auto-fixed by `./start.sh --tunnel` / watcher; or run `./start.sh --sync` once, hard-refresh UI, re-register WA |
 | Webhook URL changed again | Normal for Quick Tunnel → use `--named` for a stable host |
 | Webhooks still show old host | Path (`/webhook/wa-service`) is fine; only host comes from env. Run `--sync`, then update the external app |
 | No public exposure | `./start.sh --local` |

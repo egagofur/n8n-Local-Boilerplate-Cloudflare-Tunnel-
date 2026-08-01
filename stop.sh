@@ -23,6 +23,17 @@ if [[ ! -f .env && -f .env.example ]]; then
   :
 fi
 
+# Stop background tunnel↔n8n auto-sync watcher if running
+WATCH_PID_FILE="${ROOT_DIR}/.tunnel-watch.pid"
+if [[ -f "$WATCH_PID_FILE" ]]; then
+  pid="$(cat "$WATCH_PID_FILE" 2>/dev/null || true)"
+  if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+    kill "$pid" 2>/dev/null || true
+    echo "[INFO] Stopped tunnel watcher (pid $pid)."
+  fi
+  rm -f "$WATCH_PID_FILE"
+fi
+
 if [[ $REMOVE_VOLUMES -eq 1 ]]; then
   echo "[WARN] This will delete postgres_data and n8n_data volumes."
   read -r -p "Type 'yes' to continue: " confirm

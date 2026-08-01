@@ -22,3 +22,7 @@ Thumbs.db
 
 # Accidental local mounts (persistence is Docker named volumes by default)
 data/
+
+# Tunnel auto-sync watcher
+.tunnel-watch.pid
+.tunnel-watch.log
