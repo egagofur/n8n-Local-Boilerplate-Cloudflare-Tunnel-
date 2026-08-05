@@ -1,0 +1,1228 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## CASE 3 — Scheduler + data Spreadsheet\n\n**Masalah:** Tiap pagi buka Sheet, hitung/lihat baris manual.\n\n**Alur:**\n1. **C3 Jadwal** — Schedule (default tiap jam; demo: ubah ke menit sebentar)\n2. **C3 Baca Sheet** — Google Sheets: baca tab `warehouse`\n3. **C3 Ringkas** — Set: hitung jumlah item + pesan ringkas\n\n**Penerapan nyata:** rekap absensi harian, cek stok, daftar tugas dari sheet.\n\n**Setup:**\n- Buat tab `warehouse` (header bebas, isi beberapa baris contoh)\n- Isi Document ID di node Sheets / ambil dari list\n- ntial Google Sheets",
+        "height": 592,
+        "width": 320,
+        "color": 6
+      },
+      "id": "3e7d1a6c-f7a3-4d84-86a4-0e22ef352c96",
+      "name": "CASE 2 · Schedule + Sheet",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        1728
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## CASE 5 — Data dari luar (HTTP)\n\n**Masalah:** Data bukan cuma diketik — dari API/sistem lain.\n\n### Alur\n\n1. **Mulai** (Manual / Scheduler)\n2. **HTTP BMKG Malang** — GET prakiraan\n3. **Cek prediksi** — lokasi + slot cuaca terdekat\n4. **IF Hujan?** — cek deskripsi\n5. **Pesan normal** / **Pesan waspada hujan**\n\n\n**Penerapa:** cuaca, kurs, status server, data sekolah via API.\n\n**Node:** Scheduler · HTTP Request ·  Code · IF · Set",
+        "height": 532,
+        "width": 300
+      },
+      "id": "9dddf26a-6e37-4573-8937-233e7242ba4c",
+      "name": "CASE 3 · HTTP / API",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1280,
+        2816
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## CASE 2 — Filter / keputusan nilai\n\n**Masalah:** Cek lulus/tidak satu-satu di Excel.\n\n**Alur:**\n1. **C2 Mulai**\n2. **C2 Data siswa** — Set: nama, nilai\n3. **C2 Lulus?** — IF nilai ≥ 75\n4. **C2 Lulus** / **C4 Remedial** — pesan beda\n\n**Penerapan:** filter nilai, seleksi peserta, cek stok minimum.\n\n**Node:** Manual · Set · IF\n",
+        "height": 436,
+        "width": 300,
+        "color": 7
+      },
+      "id": "79363547-8f2a-43a1-828b-27d52d977a99",
+      "name": "CASE 4 · Filter nilai",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -432,
+        1216
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Workflow BMKG\n\n**API:**\n`https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=35.73.03.1008`\n\n**Wilayah kode:** Jawa Timur · Kota Malang · Kec. Kedungkandang · **Kel. Sawojajar**  \n(`adm4=35.73.03.1008`)",
+        "height": 228,
+        "width": 360,
+        "color": 4
+      },
+      "id": "0a19822c-643c-4e32-baa0-76c7ace25c93",
+      "name": "BMKG · HTTP Request nyata",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        2512
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "0c6d1792-e1a8-48bb-a473-d922ca38f105",
+      "name": "Jadwal (opsional)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -896,
+        2848
+      ],
+      "notes": "Opsional: cek cuaca berkala. Default tiap 6 jam. Jangan Active massal di lab siswa."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "rain-check",
+              "leftValue": "={{ $json.cuaca }}",
+              "rightValue": "Hujan",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "48c0d7f9-4483-4266-979a-d5beb5f66a94",
+      "name": "IF Hujan?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        48,
+        2720
+      ],
+      "notes": "True jika weather_desc mengandung 'Hujan'. False = cuaca lain (cerah/berawan/kabur)."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "pn",
+              "name": "pesan",
+              "value": "={{ '🌤️ Cuaca ' + $json.desa + ', ' + $json.kota + ' (' + $json.provinsi + ')\\n' + $json.alamat + '\\n' + $json.waktu_lokal + ' WIB\\n' + $json.cuaca + ' · ' + $json.suhu_c + '°C · RH ' + $json.kelembapan + '%\\nAngin ' + $json.arah_angin + ' ' + $json.angin_kmj + ' km/j\\nSumber: BMKG' }}",
+              "type": "string"
+            },
+            {
+              "id": "lv",
+              "name": "level",
+              "value": "normal",
+              "type": "string"
+            },
+            {
+              "id": "src2",
+              "name": "sumber",
+              "value": "={{ $json.sumber }}",
+              "type": "string"
+            },
+            {
+              "id": "cu",
+              "name": "cuaca",
+              "value": "={{ $json.cuaca }}",
+              "type": "string"
+            },
+            {
+              "id": "su",
+              "name": "suhu_c",
+              "value": "={{ $json.suhu_c }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "49d8ddac-a7cc-474b-88b5-a9d26c1a1626",
+      "name": "Pesan normal",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        304,
+        2864
+      ],
+      "notes": "Pesan ringkas + attribution BMKG. Siap dikirim chat/sheet."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "pw",
+              "name": "pesan",
+              "value": "={{ '🌧️ WASPADA HUJAN — ' + $json.desa + ', ' + $json.kota + '\\n' + $json.alamat + '\\n' + $json.waktu_lokal + ' WIB\\n' + $json.cuaca + ' · ' + $json.suhu_c + '°C · RH ' + $json.kelembapan + '%\\nSiapkan payung / cek perjalanan.\\nSumber: BMKG' }}",
+              "type": "string"
+            },
+            {
+              "id": "lw",
+              "name": "level",
+              "value": "waspada_hujan",
+              "type": "string"
+            },
+            {
+              "id": "srcw",
+              "name": "sumber",
+              "value": "={{ $json.sumber }}",
+              "type": "string"
+            },
+            {
+              "id": "cuw",
+              "name": "cuaca",
+              "value": "={{ $json.cuaca }}",
+              "type": "string"
+            },
+            {
+              "id": "suw",
+              "name": "suhu_c",
+              "value": "={{ $json.suhu_c }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "68109c9a-bc8c-472d-acf4-8134fe331e99",
+      "name": "Pesan waspada hujan",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        320,
+        2624
+      ],
+      "notes": "Cabang hujan — contoh action: notif ke grup kelas/sekolah."
+    },
+    {
+      "parameters": {
+        "content": "## Path JSON\n\n```\nlokasi.provinsi\nlokasi.kotkab      → Kota Malang\nlokasi.kecamatan\nlokasi.desa\nlokasi.adm4\n\ndata[0].cuaca[hari][jam]\n  .local_datetime\n  .weather_desc\n  .t   (suhu °C)\n  .hu  (kelembapan %)\n  .ws  (angin km/j)\n  .wd  (arah angin)\n  .vs_text\n  .image\n```\n\n`cuaca` = array hari → tiap hari array slot waktu.\n",
+        "height": 460,
+        "width": 516,
+        "color": 2
+      },
+      "id": "79feaf9f-0551-4975-a277-7bf2879f005e",
+      "name": "Struktur JSON BMKG",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -944,
+        3072
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst root = Array.isArray(raw) ? raw[0] : raw;\n\nconst lokasi = root.lokasi || {};\nconst cuacaHari = (root.data && root.data[0] && root.data[0].cuaca) ? root.data[0].cuaca : [];\n\nconst slots = [];\nfor (const day of cuacaHari) {\n  if (!Array.isArray(day)) continue;\n  for (const s of day) {\n    slots.push(s);\n  }\n}\n\nif (slots.length === 0) {\n  throw new Error('Tidak ada slot cuaca di response BMKG');\n}\n\nfunction toMs(slot) {\n  return new Date(String(slot.local_datetime).replace(' ', 'T') + '+07:00').getTime();\n}\n\nconst now = Date.now();\nslots.sort(function (a, b) {\n  return Math.abs(toMs(a) - now) - Math.abs(toMs(b) - now);\n});\nconst nearest = slots[0];\n\nreturn [\n  {\n    json: {\n      provinsi: lokasi.provinsi,\n      kota: lokasi.kotkab,\n      kecamatan: lokasi.kecamatan,\n      desa: lokasi.desa,\n      adm4: lokasi.adm4,\n      alamat: 'Jl. Danau Ranau, Sawojajar, Kec. Kedungkandang, Kota Malang, Jawa Timur 65139',\n      waktu_lokal: nearest.local_datetime,\n      cuaca: nearest.weather_desc,\n      suhu_c: nearest.t,\n      kelembapan: nearest.hu,\n      angin_kmj: nearest.ws,\n      arah_angin: nearest.wd,\n      jarak_pandang: nearest.vs_text,\n      sumber: 'BMKG',\n      metode_pilih: 'nearest_local_datetime',\n      api_url: 'https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=35.73.03.1008',\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        2832
+      ],
+      "id": "394041b0-32e7-44a2-ae72-1a6e89f6cdb0",
+      "name": "Normalize data"
+    },
+    {
+      "parameters": {
+        "content": "## CASE 4 — Data dari luar (Webhook)\n\n**Best practice:**\n1. Webhook terima POST\n2. Validasi field\n3. Switch: valid / invalid\n4. Invalid → **Respond 400** (jangan simpan)\n5. Valid → rapikan data → Sheet → **Respond 200**\n\n**Postman:**\nPOST `/webhook/c4-send-to-n8n`\nBody JSON:\n```json\n{\n  \"nama\": \"Budi\",\n  \"email\": \"budi@email.com\",\n  \"umur\": 17,\n  \"alamat\": \"Malang\"\n}\n```",
+        "height": 532,
+        "width": 360,
+        "color": 5
+      },
+      "id": "56061d72-e10d-4ded-a046-e32db6af08d9",
+      "name": "CASE 4 · Webhook best practice",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1104,
+        2704
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const src = $json.body && typeof $json.body === 'object' ? $json.body : $json;\n\nconst nama = src.nama != null ? String(src.nama).trim() : '';\nconst email = src.email != null ? String(src.email).trim() : '';\nconst alamat = src.alamat != null ? String(src.alamat).trim() : '';\nconst umurRaw = src.umur;\n\nconst errors = [];\n\nif (!nama) errors.push('nama wajib diisi');\nif (!email) {\n  errors.push('email wajib diisi');\n} else if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {\n  errors.push('email tidak valid');\n}\nif (umurRaw === undefined || umurRaw === null || umurRaw === '') {\n  errors.push('umur wajib diisi');\n} else {\n  const umur = Number(umurRaw);\n  if (Number.isNaN(umur)) errors.push('umur harus angka');\n  else if (umur < 1 || umur > 120) errors.push('umur harus 1–120');\n}\nif (!alamat) errors.push('alamat wajib diisi');\n\nconst valid = errors.length === 0;\nconst umurNum = Number(umurRaw);\n\nreturn {\n  json: {\n    valid,\n    status_validasi: valid ? 'valid' : 'invalid',\n    errors,\n    nama,\n    email,\n    umur: Number.isNaN(umurNum) ? umurRaw : umurNum,\n    alamat,\n    sumber: 'webhook-postman',\n  },\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1776,
+        2960
+      ],
+      "id": "ed3ba059-b80a-4399-9aa9-a7b6f77a384d",
+      "name": "C4 Validasi Data",
+      "notes": "Mode: Run Once for Each Item. Cek nama, email, umur, alamat. Output: valid + errors[]."
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.status_validasi }}",
+                    "rightValue": "valid",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "sw-valid"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "valid"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.status_validasi }}",
+                    "rightValue": "invalid",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "sw-invalid"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "invalid"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "none"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2016,
+        2928
+      ],
+      "id": "a0026e83-9f74-414d-b7f6-8c22504b70a7",
+      "name": "C4 Switch Validasi",
+      "notes": "valid → simpan sheet + 200. invalid → 400 tanpa simpan."
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: false, message: 'Validasi gagal', errors: $json.errors, received: { nama: $json.nama, email: $json.email, umur: $json.umur, alamat: $json.alamat } }) }}",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2288,
+        3152
+      ],
+      "id": "08f9d890-e104-4760-8d9f-79b9fb51ea6f",
+      "name": "C4 Response 400 Invalid",
+      "notes": "Best practice: tolak data jelek di pintu masuk. Jangan append sheet."
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, message: 'Data siswa tersimpan', data: { nama: $json.nama, email: $json.email, umur: $json.umur, alamat: $json.alamat, submitted_at: $json.submitted_at } }) }}",
+        "options": {
+          "responseCode": 201,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2768,
+        2752
+      ],
+      "id": "31914857-db7b-4ab9-956a-005b60e235e3",
+      "name": "C4 Response 201 Created",
+      "notes": "Best practice: balas client setelah sukses simpan. 201 = created."
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "c4-send-to-n8n",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        1552,
+        2848
+      ],
+      "id": "61f2a5e8-5bf3-41f4-9e01-0bae9a679343",
+      "name": "C4 Data Dari Postman1",
+      "webhookId": "89a96911-186b-4e80-8a39-079c3d86e83a",
+      "notes": "responseMode=responseNode → wajib ada node Respond to Webhook. Body JSON: nama, email, umur, alamat."
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1m5-NLVfgh-RRSs1gB4WWCCTtNE2ZOkfi_RWxRqsSr2k",
+          "mode": "list",
+          "cachedResultName": "n8n telkom",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1m5-NLVfgh-RRSs1gB4WWCCTtNE2ZOkfi_RWxRqsSr2k/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 819560584,
+          "mode": "list",
+          "cachedResultName": "siswa",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1m5-NLVfgh-RRSs1gB4WWCCTtNE2ZOkfi_RWxRqsSr2k/edit#gid=819560584"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "nama": "={{ $json.nama }}",
+            "email": "={{ $json.email }}",
+            "umur": "={{ $json.umur }}",
+            "alamat": "={{ $json.alamat }}",
+            "submitted_at": "={{ $json.submitted_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "nama",
+              "displayName": "nama",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "umur",
+              "displayName": "umur",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "alamat",
+              "displayName": "alamat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "submitted_at",
+              "displayName": "submitted_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "8419f3dc-ab65-4ba6-9812-475b47e8ed08",
+      "name": "C4 Simpan Di Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2528,
+        2752
+      ],
+      "ntials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TlSGe8bGIaQth7oE",
+          "name": "Google Sheets account"
+        }
+      },
+      "notes": "Append tab siswa. Header sheet: nama | email | umur | alamat | submitted_at"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f-nama",
+              "name": "nama",
+              "value": "={{ $json.nama }}",
+              "type": "string"
+            },
+            {
+              "id": "f-email",
+              "name": "email",
+              "value": "={{ $json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "f-umur",
+              "name": "umur",
+              "value": "={{ $json.umur }}",
+              "type": "number"
+            },
+            {
+              "id": "f-alamat",
+              "name": "alamat",
+              "value": "={{ $json.alamat }}",
+              "type": "string"
+            },
+            {
+              "id": "f-submitted",
+              "name": "submitted_at",
+              "value": "={{ $now.setZone('Asia/Jakarta').toFormat('dd-LL-yyyy HH:mm') }}",
+              "type": "string"
+            },
+            {
+              "id": "f-case",
+              "name": "submitted_by",
+              "value": "4-webhook-siswa",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2288,
+        2752
+      ],
+      "id": "77035d09-17a3-42cf-845d-7a76eab23944",
+      "name": "C4 Filter Data",
+      "notes": "Data bersih + submitted_at WIB. (nama field submitted_at tanpa '=' typo)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1-pf",
+              "name": "pesan",
+              "value": "=⚠️ Follow-up — {{ $json.nama_event }}: hanya {{ $json.hadir }} hadir (< 20)",
+              "type": "string"
+            },
+            {
+              "id": "c1-hf",
+              "name": "hasil",
+              "value": "follow_up",
+              "type": "string"
+            },
+            {
+              "id": "c1-casef",
+              "name": "case",
+              "value": "1-rekap-event",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2bb8ed8f-7933-4701-b4e2-af9faab83f61",
+      "name": "C1 Pesan follow-up",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        976
+      ],
+      "notes": "Output false: perlu cek panitia / promosi event."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1-po",
+              "name": "pesan",
+              "value": "=Rekap OK — {{ $json.nama_event }} ({{ $json.kelas }}): {{ $json.hadir }} hadir",
+              "type": "string"
+            },
+            {
+              "id": "c1-ho",
+              "name": "hasil",
+              "value": "ok",
+              "type": "string"
+            },
+            {
+              "id": "c1-case",
+              "name": "case",
+              "value": "1-rekap-event",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "012a486d-2ac5-4071-802d-4bde5795bf5e",
+      "name": "C1 Pesan OK",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        736
+      ],
+      "notes": "Output true: pesan siap tempel ke grup/WA."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1-if",
+              "leftValue": "={{ $json.hadir }}",
+              "rightValue": 20,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "258ad5ab-c9ec-49ac-9f9e-a8f1f5473668",
+      "name": "C1 Cek hadir",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        464,
+        848
+      ],
+      "notes": "hadir >= 20 → rekap OK. Di bawah 20 → follow-up panitia."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1-ne",
+              "name": "nama_event",
+              "value": "Workshop n8n",
+              "type": "string"
+            },
+            {
+              "id": "c1-kl",
+              "name": "kelas",
+              "value": "XII RPL 1",
+              "type": "string"
+            },
+            {
+              "id": "c1-hd",
+              "name": "hadir",
+              "value": 15,
+              "type": "number"
+            },
+            {
+              "id": "c1-tg",
+              "name": "tanggal",
+              "value": "2026-08-06",
+              "type": "string"
+            },
+            {
+              "id": "c1-st",
+              "name": "status_event",
+              "value": "open",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "86b9f88f-a455-4c7a-9c7d-5c9a5935793b",
+      "name": "C1 Data event",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        192,
+        944
+      ],
+      "notes": "Isi data rekap. Ubah hadir untuk demo IF."
+    },
+    {
+      "parameters": {},
+      "id": "4a5aeb24-e147-4ed9-a3e6-05f0e827d360",
+      "name": "C1 Mulai",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        848
+      ],
+      "notes": "CASE 1 — Execute dari sini untuk rekap event."
+    },
+    {
+      "parameters": {
+        "content": "## CASE 1 — Rekap event (manual)\n\n**Masalah:** Data kehadiran event dihitung manual tiap kali.\n\n**Alur:**\n1. **C1 Mulai** — klik Execute (testing)\n2. **C1 Data event** — Set: nama_event, kelas, hadir, tanggal\n3. **C1 Cek hadir** — IF hadir ≥ 20\n4. **C1 OK** / **C1 Follow-up** — pesan rekap beda\n\n**Penerapan nyata:** rekap workshop, absensi kegiatan, cek kuorum.\n\n**Coba:** ubah `hadir` → 10 → Execute lagi (cabang false).\n\n**Node:** Manual Trigger · Set · IF\n",
+        "height": 520,
+        "width": 300,
+        "color": 5
+      },
+      "id": "3f16fc34-df56-46a8-a1ac-b398143b8026",
+      "name": "CASE 1 · Rekap event",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "nama"
+            },
+            {
+              "fieldLabel": "nilai",
+              "fieldType": "number"
+            },
+            {
+              "fieldLabel": "mapel"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -48,
+        1424
+      ],
+      "id": "4c80e152-133c-4114-beed-433594db74ed",
+      "name": "C2 Form Nilai Siswa",
+      "webhookId": "9074cc89-293f-4c3a-abd7-bd222e82da96"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c4-if",
+              "leftValue": "={{ $json.nilai }}",
+              "rightValue": 75,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2ee7f66a-a126-4237-a4f3-c00cd1458f7d",
+      "name": "C2 Lulus?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        160,
+        1360
+      ],
+      "notes": "nilai >= 75 → lulus. Di bawah → remedial."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c4-po",
+              "name": "pesan",
+              "value": "={{ '✅ ' + $json.nama + ' lulus ' + $json.mapel + ' (nilai ' + $json.nilai + ')' }}",
+              "type": "string"
+            },
+            {
+              "id": "c4-h",
+              "name": "hasil",
+              "value": "lulus",
+              "type": "string"
+            },
+            {
+              "id": "c4-c",
+              "name": "case",
+              "value": "4-filter-nilai",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a491773b-64a6-4aee-992b-22a15e0003c9",
+      "name": "C2 Pesan lulus",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        1280
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c4-pr",
+              "name": "pesan",
+              "value": "={{ '📕 ' + $json.nama + ' remedial ' + $json.mapel + ' (nilai ' + $json.nilai + ')' }}",
+              "type": "string"
+            },
+            {
+              "id": "c4-hr",
+              "name": "hasil",
+              "value": "remedial",
+              "type": "string"
+            },
+            {
+              "id": "c4-cr",
+              "name": "case",
+              "value": "4-filter-nilai",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c8bae799-f050-476b-a20e-913c49c589b8",
+      "name": "C2 Pesan remedial",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        1520
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "id": "80c14238-a3c0-49c5-a748-24cabbfefd56",
+      "name": "C3 Jadwal",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        1984
+      ],
+      "notes": "CASE 2 — Schedule. Default 1 jam. Demo: minutes sebentar, lalu kembalikan."
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1m5-NLVfgh-RRSs1gB4WWCCTtNE2ZOkfi_RWxRqsSr2k",
+          "mode": "list",
+          "cachedResultName": "n8n telkom",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1m5-NLVfgh-RRSs1gB4WWCCTtNE2ZOkfi_RWxRqsSr2k/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1711397126,
+          "mode": "list",
+          "cachedResultName": "warehouse",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1m5-NLVfgh-RRSs1gB4WWCCTtNE2ZOkfi_RWxRqsSr2k/edit#gid=1711397126"
+        },
+        "options": {}
+      },
+      "id": "67a0ec30-b4d7-4a05-b46a-04add777331e",
+      "name": "C3 Baca Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        2000
+      ],
+      "ntials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TlSGe8bGIaQth7oE",
+          "name": "Google Sheets account"
+        }
+      },
+      "notes": "Read rows dari tab `demo_rekap`. Ganti documentId + buat tab dengan beberapa baris data. Operation default = read/get many — sesuaikan di UI jika perlu (Get Row(s))."
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all();\nconst n = rows.length;\nconst data = rows.map(d => {\n  return d.json\n})\n\nreturn [\n  {\n    json: {\n      jumlah_baris: n,\n      pesan: `Rekap sheet: ${n} baris data (jadwal otomatis)`,\n      case: '2-schedule-spreadsheet',\n      sumber: 'google-sheets',\n      data: data\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        2032
+      ],
+      "id": "412617f4-1eb8-4f49-8929-39c98a5a5a45",
+      "name": "C3 Ringkas dari sheet"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7a30106c-e399-4451-8562-62f34c687076",
+              "name": "message",
+              "value": "={{\n`Laporan Rekap Spreadsheet\n\nJumlah Data: ${$json.jumlah_baris}\n\n${$json.data.map((item, i) => `\n${i + 1}. ${item.Produk}\nHarga   : Rp${item.Harga.toLocaleString('id-ID')}\nStok    : ${item.Stok}\nJadwal  : ${item[\"Jadwal Pengiriman\"]}`\n).join('\\n')}\n\nPesan ini dikirim secara otomatis.`\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        688,
+        2048
+      ],
+      "id": "69d6c279-6cf3-49b5-8820-e97aca4d3007",
+      "name": "C3 Atur Format Pesan"
+    },
+    {
+      "parameters": {
+        "url": "https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=35.73.03.1008",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "id": "1ab3e4aa-71bb-4413-9f49-ce003a075f16",
+      "name": "HTTP BMKG",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -608,
+        2704
+      ],
+      "notes": "GET https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=35.73.03.1008\nLokasi: Sawojajar, Kedungkandang, Kota Malang (Jatim).\nAlamat: Jl. Danau Ranau, Sawojajar, Kec. Kedungkandang, Kota Malang, Jawa Timur 65139"
+    }
+  ],
+  "connections": {
+    "Jadwal (opsional)": {
+      "main": [
+        [
+          {
+            "node": "HTTP BMKG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Hujan?": {
+      "main": [
+        [
+          {
+            "node": "Pesan waspada hujan",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pesan normal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pesan normal": {
+      "main": [
+        []
+      ]
+    },
+    "Pesan waspada hujan": {
+      "main": [
+        []
+      ]
+    },
+    "Normalize data": {
+      "main": [
+        [
+          {
+            "node": "IF Hujan?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C4 Validasi Data": {
+      "main": [
+        [
+          {
+            "node": "C4 Switch Validasi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C4 Switch Validasi": {
+      "main": [
+        [
+          {
+            "node": "C4 Filter Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "C4 Response 400 Invalid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C4 Data Dari Postman1": {
+      "main": [
+        [
+          {
+            "node": "C4 Validasi Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C4 Simpan Di Sheet": {
+      "main": [
+        [
+          {
+            "node": "C4 Response 201 Created",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C4 Filter Data": {
+      "main": [
+        [
+          {
+            "node": "C4 Simpan Di Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C1 Cek hadir": {
+      "main": [
+        [
+          {
+            "node": "C1 Pesan OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "C1 Pesan follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C1 Data event": {
+      "main": [
+        [
+          {
+            "node": "C1 Cek hadir",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C1 Mulai": {
+      "main": [
+        [
+          {
+            "node": "C1 Data event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C2 Form Nilai Siswa": {
+      "main": [
+        [
+          {
+            "node": "C2 Lulus?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C2 Lulus?": {
+      "main": [
+        [
+          {
+            "node": "C2 Pesan lulus",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "C2 Pesan remedial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C3 Jadwal": {
+      "main": [
+        [
+          {
+            "node": "C3 Baca Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C3 Baca Sheet": {
+      "main": [
+        [
+          {
+            "node": "C3 Ringkas dari sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C3 Ringkas dari sheet": {
+      "main": [
+        [
+          {
+            "node": "C3 Atur Format Pesan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C3 Atur Format Pesan": {
+      "main": [
+        []
+      ]
+    },
+    "HTTP BMKG": {
+      "main": [
+        [
+          {
+            "node": "Normalize data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d2285411fd15fcf0667156b797a9e5fc753eb73ae8ad363a360e1fca0ebdfedc"
+  }
+}
